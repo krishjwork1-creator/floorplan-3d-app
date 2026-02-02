@@ -1,175 +1,215 @@
 :root {
-  --bg-dark: #0a0a0a;
-  --panel-dark: #171717;
-  --accent-primary: #3b82f6; /* Tech Blue */
-  --accent-glow: rgba(59, 130, 246, 0.5);
+  --bg-core: #050505;
+  --bg-card: #121212;
+  --accent-green: #4ade80; /* The Neon Green from your image */
+  --accent-dark: #14532d;
   --text-main: #ffffff;
-  --text-muted: #a1a1aa;
-  --border-color: #27272a;
-  --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --text-muted: #9ca3af;
+  --font-display: 'Inter', sans-serif; /* Clean, modern font */
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background-color: var(--bg-dark);
+  background-color: var(--bg-core);
   color: var(--text-main);
-  font-family: var(--font-main);
-  -webkit-font-smoothing: antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden; /* No scrolling, app-like feel */
 }
 
-/* --- LAYOUT --- */
+/* --- MAIN CONTAINER --- */
 .app-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  background: var(--bg-core);
+  position: relative;
+}
+
+/* --- LEFT SIDEBAR (The "NEXA" Strip) --- */
+.brand-strip {
+  width: 80px;
+  height: 100%;
+  border-right: 1px solid rgba(255,255,255,0.1);
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* --- NAVBAR --- */
-.navbar {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  border-bottom: 1px solid var(--border-color);
-  background: rgba(10, 10, 10, 0.8);
-  backdrop-filter: blur(10px);
-  position: fixed;
-  width: 100%;
-  top: 0;
-  z-index: 10;
+  padding: 2rem 0;
+  z-index: 20;
+  background: var(--bg-core);
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 1.25rem;
-  letter-spacing: -0.05em;
-  background: linear-gradient(to right, #fff, #a1a1aa);
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin-top: auto;
+  margin-bottom: auto;
+  background: linear-gradient(to top, #fff, #666);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.nav-links button {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-left: 20px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.nav-links button:hover {
-  color: white;
-}
-
-.btn-primary {
-  background-color: var(--text-main);
-  color: black;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-}
-
-/* --- MAIN CONTENT --- */
-.main-content {
+/* --- HERO SECTION (Landing Page) --- */
+.hero-wrapper {
+  flex: 1;
   display: flex;
-  height: 100%;
-  padding-top: 60px; /* Space for navbar */
+  position: relative;
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Sidebar (Upload Area) */
-.sidebar {
-  width: 350px;
-  background-color: var(--panel-dark);
-  border-right: 1px solid var(--border-color);
-  padding: 2rem;
+/* Left Text Content */
+.hero-content {
+  width: 45%;
+  padding: 4rem;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  z-index: 10;
+  background: var(--bg-core);
+}
+
+.pill-nav {
+  display: flex;
   gap: 2rem;
-  box-shadow: 10px 0 30px rgba(0,0,0,0.3);
-  z-index: 5;
-}
-
-.hero-text h1 {
-  font-size: 1.8rem;
-  line-height: 1.1;
-  margin-bottom: 0.5rem;
-}
-
-.hero-text p {
-  color: var(--text-muted);
+  margin-bottom: 4rem;
   font-size: 0.9rem;
-  line-height: 1.5;
+  color: var(--text-muted);
 }
 
-/* Upload Box */
-.upload-zone {
-  border: 2px dashed var(--border-color);
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  background: rgba(255,255,255,0.02);
+.pill-nav span { cursor: pointer; transition: color 0.3s; }
+.pill-nav span:hover { color: var(--accent-green); }
+.pill-nav .active { 
+  color: var(--bg-core); 
+  background: var(--accent-green); 
+  padding: 5px 15px; 
+  border-radius: 20px; 
+  font-weight: 600;
+}
+
+.big-title {
+  font-size: 5rem;
+  line-height: 0.9;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+
+.highlight { color: var(--accent-green); }
+
+.description {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  max-width: 400px;
+  line-height: 1.6;
+  margin-bottom: 3rem;
+}
+
+/* The "Upload" Button (Styled like the CTA) */
+.cta-container {
   position: relative;
+  display: inline-block;
 }
 
-.upload-zone:hover {
-  border-color: var(--accent-primary);
-  background: rgba(59, 130, 246, 0.05);
-}
-
-.upload-zone input {
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.icon-upload {
-  font-size: 2rem;
-  margin-bottom: 10px;
-  display: block;
-}
-
-/* --- 3D VIEWER AREA --- */
-.viewer-area {
-  flex: 1;
-  position: relative;
-  background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
-}
-
-.loading-overlay {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0,0,0,0.8);
-  padding: 20px 40px;
+.cta-button {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  padding: 1rem 2rem;
   border-radius: 50px;
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(5px);
+  font-size: 1rem;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 1rem;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
-.spinner {
-  width: 20px; height: 20px;
-  border: 2px solid var(--text-muted);
-  border-top-color: var(--text-main);
+.cta-button:hover {
+  border-color: var(--accent-green);
+  background: rgba(74, 222, 128, 0.1);
+}
+
+.arrow-circle {
+  width: 30px; height: 30px;
+  background: var(--accent-green);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
+  font-weight: bold;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+/* --- VISUAL SIDE (The Green Blob/3D Area) --- */
+.hero-visual {
+  flex: 1;
+  background: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+  /* The Curved Shape from the image */
+  border-top-left-radius: 60px;
+  border-bottom-left-radius: 60px;
+  margin: 1rem 1rem 1rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
-  .main-content { flex-direction: column-reverse; }
-  .sidebar { width: 100%; height: 40%; padding: 1.5rem; }
-  .viewer-area { height: 60%; }
-  .navbar { padding: 1rem; }
+/* The Background Image/Gradient */
+.abstract-bg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at 70% 30%, #1e2520 0%, #000 70%);
+  z-index: 1;
+}
+
+/* --- FULL SCREEN MODE (After Upload) --- */
+.app-container.full-mode .brand-strip { display: none; }
+.app-container.full-mode .hero-content { display: none; }
+.app-container.full-mode .hero-wrapper { width: 100%; height: 100%; }
+.app-container.full-mode .hero-visual { 
+  margin: 0; 
+  border-radius: 0; 
+  width: 100%; 
+  height: 100%; 
+}
+
+/* Floating Controls in Full Mode */
+.floating-ui {
+  position: absolute;
+  top: 2rem; left: 2rem;
+  z-index: 100;
+  display: flex;
+  gap: 1rem;
+}
+
+.glass-btn {
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.glass-btn:hover { background: var(--accent-green); color: black; }
+
+/* Loading Spinner */
+.loader-container {
+  position: absolute;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--accent-green);
 }

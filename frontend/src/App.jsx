@@ -1,120 +1,154 @@
 import React, { useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Stage, Grid } from '@react-three/drei';
+import { OrbitControls, useGLTF, Stage, Float, Environment } from '@react-three/drei';
 import axios from 'axios';
 import './App.css';
 
-// --- 3D MODEL COMPONENT ---
+// --- 3D COMPONENT ---
 function Model({ url }) {
   const { scene } = useGLTF(url);
   return <primitive object={scene} />;
 }
 
+// --- DECORATIVE BLOB (For the empty state) ---
+function AbstractBlob() {
+  return (
+    <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
+      <mesh scale={2.5}>
+        <sphereGeometry args={[1, 64, 64]} />
+        <meshStandardMaterial 
+          color="#1a1a1a" 
+          metalness={0.9} 
+          roughness={0.1} 
+          envMapIntensity={1}
+        />
+      </mesh>
+    </Float>
+  );
+}
+
 export default function App() {
   const [modelUrl, setModelUrl] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [fileName, setFileName] = useState("");
 
   const handleUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     setLoading(true);
-    setFileName(file.name);
-    
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      // REPLACE THIS URL WITH YOUR RENDER URL
+      // REPLACE WITH YOUR RENDER URL
       const response = await axios.post("https://floorplan-api-sjoa.onrender.com/convert", formData);
       setModelUrl(response.data.url);
     } catch (error) {
       console.error("Error:", error);
-      alert("Something went wrong. Please try again.");
+      alert("Conversion failed. Check console.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="app-container">
-      
-      {/* NAVBAR */}
-      <nav className="navbar">
-        <div className="logo">FLOORPLAN<span style={{color: '#3b82f6'}}>.AI</span></div>
-        <div className="nav-links">
-          <button>Pricing</button>
-          <button>Login</button>
-          <button className="btn-primary">Get Pro</button>
-        </div>
-      </nav>
+  const resetViewer = () => {
+    setModelUrl(null);
+    setLoading(false);
+  };
 
-      {/* MAIN CONTENT SPLIT */}
-      <div className="main-content">
+  return (
+    // Dynamic Class: If model exists, switch to "full-mode"
+    <div className={`app-container ${modelUrl ? 'full-mode' : ''}`}>
+      
+      {/* SIDEBAR (Hidden in Full Mode) */}
+      <div className="brand-strip">
+        <div className="vertical-text">FLOORPLAN.AI</div>
+        {/* Social Icons could go here */}
+      </div>
+
+      <div className="hero-wrapper">
         
-        {/* LEFT PANEL: CONTROLS */}
-        <div className="sidebar">
-          <div className="hero-text">
-            <h1>2D to 3D.<br/>Instantly.</h1>
-            <p>Upload any floor plan image and let our AI engine build a 3D digital twin in seconds.</p>
+        {/* LEFT TEXT (Hidden in Full Mode) */}
+        <div className="hero-content">
+          <div className="pill-nav">
+            <span className="active">Home</span>
+            <span>Services</span>
+            <span>Projects</span>
+            <span>About Us</span>
           </div>
 
-          <div className="upload-zone">
-            <span className="icon-upload">📂</span>
-            <p>
-              {loading ? "Processing..." : "Drag & drop or click to upload"}
-            </p>
-            <span style={{fontSize: '0.8rem', color: '#666'}}>
-              {fileName ? `Selected: ${fileName}` : "Supports JPG, PNG"}
-            </span>
+          <div className="big-title">
+            WE BUILD <br/>
+            <span className="highlight">DIGITAL</span> SPACES
+          </div>
+
+          <p className="description">
+            From 2D sketches to immersive 3D realities. 
+            Upload your floor plan and watch our AI craft tailored solutions 
+            to drive your architectural success.
+          </p>
+
+          <div className="cta-container">
+            {/* The Hidden Input Trick */}
             <input 
               type="file" 
               accept="image/*" 
-              onChange={handleUpload} 
+              onChange={handleUpload}
+              id="file-upload"
+              style={{ display: 'none' }}
               disabled={loading}
             />
-          </div>
-
-          <div style={{marginTop: 'auto', fontSize: '0.8rem', color: '#555'}}>
-            © 2026 Floorplan.AI • v1.0
+            
+            <label htmlFor="file-upload" className="cta-button">
+              {loading ? "Processing AI..." : "Transform Your Floorplan"}
+              <div className="arrow-circle">↗</div>
+            </label>
           </div>
         </div>
 
-        {/* RIGHT PANEL: 3D VIEWER */}
-        <div className="viewer-area">
-          <Canvas shadows camera={{ position: [0, 50, 50], fov: 45 }}>
-            <color attach="background" args={['#101010']} />
-            
-            {/* Tech Grid Floor */}
-            <Grid infiniteGrid fadeDistance={50} cellColor="#333" sectionColor="#555" />
-            
-            <OrbitControls makeDefault autoRotate={!modelUrl} autoRotateSpeed={0.5} />
-            
+        {/* VISUAL AREA (Right Side -> Expands to Full Screen) */}
+        <div className="hero-visual">
+          <div className="abstract-bg"></div>
+          
+          {/* 3D CANVAS */}
+          <Canvas shadows camera={{ position: [0, 0, 8], fov: 45 }}>
+            {/* Lighting for the dark theme */}
+            <ambientLight intensity={0.5} />
+            <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
+            <Environment preset="city" />
+
             <Suspense fallback={null}>
-              <Stage environment="city" intensity={0.5} contactShadow={false}>
-                {modelUrl && <Model url={modelUrl} />}
-              </Stage>
+              {modelUrl ? (
+                // STATE 1: USER'S MODEL
+                <Stage environment="city" intensity={0.5}>
+                  <Model url={modelUrl} />
+                </Stage>
+              ) : (
+                // STATE 2: DECORATIVE BLOB (Matches image)
+                <AbstractBlob />
+              )}
             </Suspense>
+            
+            <OrbitControls makeDefault autoRotate={!modelUrl} />
           </Canvas>
 
-          {/* LOADING STATE OVERLAY */}
           {loading && (
-            <div className="loading-overlay">
-              <div className="spinner"></div>
-              <span>Building Geometry...</span>
+             <div className="loader-container">
+               <h3>Building your world...</h3>
+             </div>
+          )}
+
+          {/* FLOATING CONTROLS (Only visible in Full Mode) */}
+          {modelUrl && (
+            <div className="floating-ui">
+              <button className="glass-btn" onClick={resetViewer}>← Back</button>
+              <button className="glass-btn">Download .GLB</button>
+              <button className="glass-btn" style={{background: '#4ade80', color: '#000'}}>
+                Buy High-Res (₹49)
+              </button>
             </div>
           )}
 
-          {/* INSTRUCTIONS OVERLAY (If no model yet) */}
-          {!modelUrl && !loading && (
-            <div style={{
-              position: 'absolute', bottom: '20px', right: '20px', 
-              color: '#555', fontSize: '0.8rem'
-            }}>
-              Waiting for input...
-            </div>
-          )}
         </div>
       </div>
     </div>
