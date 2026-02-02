@@ -119,14 +119,16 @@ export default function App() {
 
             <Suspense fallback={null}>
               {modelUrl ? (
-                // STATE 1: USER'S MODEL
-                <Stage environment="city" intensity={0.5}>
-                  <Model url={modelUrl} />
-                </Stage>
-              ) : (
-                // STATE 2: DECORATIVE BLOB (Matches image)
-                <AbstractBlob />
-              )}
+  // STATE 1: USER'S MODEL
+  // preset="rembrandt" gives professional studio lighting
+  // intensity={1} makes it bright
+  <Stage environment="city" intensity={1} preset="rembrandt" adjustCamera={1.2}>
+    <Model url={modelUrl} />
+  </Stage>
+) : (
+  // STATE 2: DECORATIVE BLOB
+  <AbstractBlob />
+)}
             </Suspense>
             
             <OrbitControls makeDefault autoRotate={!modelUrl} />
