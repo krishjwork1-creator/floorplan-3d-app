@@ -31,7 +31,7 @@ const handleUpload = async (event) => {
     try {
       // 1. Send to Backend
       // Note: We removed "responseType: blob" because we expect JSON now
-      const response = await axios.post("https://floorplan-api-sjoa.onrender.com", formData);
+      const response = await axios.post("https://floorplan-api-sjoa.onrender.com/convert", formData);
 
       // 2. The backend now returns { "url": "https://..." }
       const publicUrl = response.data.url;
