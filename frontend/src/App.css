@@ -1,42 +1,175 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+:root {
+  --bg-dark: #0a0a0a;
+  --panel-dark: #171717;
+  --accent-primary: #3b82f6; /* Tech Blue */
+  --accent-glow: rgba(59, 130, 246, 0.5);
+  --text-main: #ffffff;
+  --text-muted: #a1a1aa;
+  --border-color: #27272a;
+  --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- LAYOUT --- */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* --- NAVBAR --- */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(10px);
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 10;
 }
 
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.05em;
+  background: linear-gradient(to right, #fff, #a1a1aa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.nav-links button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-left: 20px;
+  cursor: pointer;
+  transition: color 0.2s;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.nav-links button:hover {
+  color: white;
 }
 
-.card {
-  padding: 2em;
+.btn-primary {
+  background-color: var(--text-main);
+  color: black;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
 }
 
-.read-the-docs {
-  color: #888;
+/* --- MAIN CONTENT --- */
+.main-content {
+  display: flex;
+  height: 100%;
+  padding-top: 60px; /* Space for navbar */
+}
+
+/* Sidebar (Upload Area) */
+.sidebar {
+  width: 350px;
+  background-color: var(--panel-dark);
+  border-right: 1px solid var(--border-color);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  box-shadow: 10px 0 30px rgba(0,0,0,0.3);
+  z-index: 5;
+}
+
+.hero-text h1 {
+  font-size: 1.8rem;
+  line-height: 1.1;
+  margin-bottom: 0.5rem;
+}
+
+.hero-text p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Upload Box */
+.upload-zone {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background: rgba(255,255,255,0.02);
+  position: relative;
+}
+
+.upload-zone:hover {
+  border-color: var(--accent-primary);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.upload-zone input {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.icon-upload {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+/* --- 3D VIEWER AREA --- */
+.viewer-area {
+  flex: 1;
+  position: relative;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.8);
+  padding: 20px 40px;
+  border-radius: 50px;
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--text-muted);
+  border-top-color: var(--text-main);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .main-content { flex-direction: column-reverse; }
+  .sidebar { width: 100%; height: 40%; padding: 1.5rem; }
+  .viewer-area { height: 60%; }
+  .navbar { padding: 1rem; }
 }

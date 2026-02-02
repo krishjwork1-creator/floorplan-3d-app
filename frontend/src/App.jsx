@@ -1,88 +1,121 @@
 import React, { useState, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Stage, Html } from '@react-three/drei';
+import { OrbitControls, useGLTF, Stage, Grid } from '@react-three/drei';
 import axios from 'axios';
-import './App.css'; // We will use the default CSS for now
+import './App.css';
 
-// A component to load the 3D Model
+// --- 3D MODEL COMPONENT ---
 function Model({ url }) {
-  // useGLTF loads the file from the URL
   const { scene } = useGLTF(url);
   return <primitive object={scene} />;
-}
-
-// A Loading bar component
-function Loader() {
-  return <Html center>Converting... Please wait.</Html>;
 }
 
 export default function App() {
   const [modelUrl, setModelUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fileName, setFileName] = useState("");
 
-const handleUpload = async (event) => {
+  const handleUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     setLoading(true);
+    setFileName(file.name);
+    
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      // 1. Send to Backend
-      // Note: We removed "responseType: blob" because we expect JSON now
+      // REPLACE THIS URL WITH YOUR RENDER URL
       const response = await axios.post("https://floorplan-api-sjoa.onrender.com/convert", formData);
-
-      // 2. The backend now returns { "url": "https://..." }
-      const publicUrl = response.data.url;
-      console.log("Model available at:", publicUrl);
-      
-      setModelUrl(publicUrl);
+      setModelUrl(response.data.url);
     } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Conversion failed. Check console.");
+      console.error("Error:", error);
+      alert("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-  
-  return (
-    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column" }}>
-      
-      {/* Header / Upload Bar */}
-      <div style={{ padding: "20px", background: "#333", color: "white", display: "flex", gap: "20px", alignItems: "center" }}>
-        <h2>FloorPlan 3D</h2>
-        <input 
-          type="file" 
-          accept="image/*" 
-          onChange={handleUpload} 
-          style={{ color: "white" }}
-        />
-      </div>
 
-      {/* 3D Canvas Area */}
-      <div style={{ flex: 1, background: "#f0f0f0" }}>
-        <Canvas shadows camera={{ position: [0, 50, 50], fov: 50 }}>
-          {/* Controls: Let user rotate/zoom */}
-          <OrbitControls makeDefault />
-          
-          <Suspense fallback={<Loader />}>
-            {/* Stage: Automatically adds lighting and centers the model */}
-            <Stage environment="city" intensity={0.6}>
-              {modelUrl && <Model url={modelUrl} />}
-            </Stage>
-          </Suspense>
-          
-        </Canvas>
+  return (
+    <div className="app-container">
+      
+      {/* NAVBAR */}
+      <nav className="navbar">
+        <div className="logo">FLOORPLAN<span style={{color: '#3b82f6'}}>.AI</span></div>
+        <div className="nav-links">
+          <button>Pricing</button>
+          <button>Login</button>
+          <button className="btn-primary">Get Pro</button>
+        </div>
+      </nav>
+
+      {/* MAIN CONTENT SPLIT */}
+      <div className="main-content">
         
-        {loading && (
-            <div style={{
-                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-                background: "white", padding: "20px", borderRadius: "10px", boxShadow: "0 0 10px rgba(0,0,0,0.2)"
-            }}>
-                Processing your floorplan...
+        {/* LEFT PANEL: CONTROLS */}
+        <div className="sidebar">
+          <div className="hero-text">
+            <h1>2D to 3D.<br/>Instantly.</h1>
+            <p>Upload any floor plan image and let our AI engine build a 3D digital twin in seconds.</p>
+          </div>
+
+          <div className="upload-zone">
+            <span className="icon-upload">📂</span>
+            <p>
+              {loading ? "Processing..." : "Drag & drop or click to upload"}
+            </p>
+            <span style={{fontSize: '0.8rem', color: '#666'}}>
+              {fileName ? `Selected: ${fileName}` : "Supports JPG, PNG"}
+            </span>
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleUpload} 
+              disabled={loading}
+            />
+          </div>
+
+          <div style={{marginTop: 'auto', fontSize: '0.8rem', color: '#555'}}>
+            © 2026 Floorplan.AI • v1.0
+          </div>
+        </div>
+
+        {/* RIGHT PANEL: 3D VIEWER */}
+        <div className="viewer-area">
+          <Canvas shadows camera={{ position: [0, 50, 50], fov: 45 }}>
+            <color attach="background" args={['#101010']} />
+            
+            {/* Tech Grid Floor */}
+            <Grid infiniteGrid fadeDistance={50} cellColor="#333" sectionColor="#555" />
+            
+            <OrbitControls makeDefault autoRotate={!modelUrl} autoRotateSpeed={0.5} />
+            
+            <Suspense fallback={null}>
+              <Stage environment="city" intensity={0.5} contactShadow={false}>
+                {modelUrl && <Model url={modelUrl} />}
+              </Stage>
+            </Suspense>
+          </Canvas>
+
+          {/* LOADING STATE OVERLAY */}
+          {loading && (
+            <div className="loading-overlay">
+              <div className="spinner"></div>
+              <span>Building Geometry...</span>
             </div>
-        )}
+          )}
+
+          {/* INSTRUCTIONS OVERLAY (If no model yet) */}
+          {!modelUrl && !loading && (
+            <div style={{
+              position: 'absolute', bottom: '20px', right: '20px', 
+              color: '#555', fontSize: '0.8rem'
+            }}>
+              Waiting for input...
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
