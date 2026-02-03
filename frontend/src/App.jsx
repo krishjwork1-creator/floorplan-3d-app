@@ -39,7 +39,7 @@ export default function App() {
     try {
       // 1. Create Order on Backend
       // We ask for ₹49 (4900 paise)
-      const orderUrl = "https://floorplan-api-sjoa.onrender.com/convert"; 
+      const orderUrl = "https://floorplan-api-sjoa.onrender.com/create-order"; 
       const { data } = await axios.post(orderUrl, { amount: 4900 });
 
       // 2. Configure Razorpay Popup

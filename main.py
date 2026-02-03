@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 # --- CONFIGURATION ---
 SUPABASE_URL = "https://lebfznhghxhddkmealtm.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYmZ6bmhnaHhoZGRrbWVhbHRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjAyNDksImV4cCI6MjA4NTU5NjI0OX0.WFzxe1FRbmL2FaUqjD3yWKuzX6E-Es5u9rw4UCO7y3o"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYmZ6bmhnaHhoZGRrbWVhbHRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDAyMDI0OSwiZXhwIjoyMDg1NTk2MjQ5fQ.iwdSuFtiHql8zC3aGGmYwpnwEqd6ex31hsYrhtEsaFk"
 
 # ### NEW 2: Add Razorpay Configuration here
 RAZORPAY_KEY_ID = "rzp_live_SBaCxRDBNkWaSr"
