@@ -2,7 +2,7 @@ import React, { useState, Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Stage, Float, Environment } from '@react-three/drei';
 import axios from 'axios';
-import { supabase } from './supabaseClient'; // <--- NEW IMPORT
+import { supabase } from './supabaseClient';
 import './App.css';
 
 // --- 3D COMPONENT ---
@@ -11,7 +11,7 @@ function Model({ url }) {
   return <primitive object={scene} />;
 }
 
-// --- DECORATIVE BLOB (For the empty state) ---
+// --- DECORATIVE BLOB ---
 function AbstractBlob() {
   return (
     <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
@@ -33,16 +33,14 @@ export default function App() {
   const [modelUrl, setModelUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
-  const [user, setUser] = useState(null); // <--- AUTH STATE
+  const [user, setUser] = useState(null);
 
   // --- AUTH LISTENER ---
   useEffect(() => {
-    // 1. Check active session immediately
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
 
-    // 2. Listen for login/logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -59,7 +57,6 @@ export default function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    // Optional: Reset state on logout
     resetViewer();
   };
 
@@ -68,11 +65,11 @@ export default function App() {
     if (!modelUrl) return;
 
     try {
-      // 1. Create Order on Backend
+      // 1. Create Order
       const orderUrl = "https://floorplan-api-sjoa.onrender.com/create-order"; 
       const { data } = await axios.post(orderUrl, { amount: 4900 });
 
-      // 2. Configure Razorpay Popup
+      // 2. Razorpay Options
       const options = {
         key: "rzp_live_SBaCxRDBNkWaSr", // <--- PASTE KEY ID HERE
         amount: data.amount,
@@ -110,10 +107,17 @@ export default function App() {
 
     setLoading(true);
     setFileName(file.name);
+    
     const formData = new FormData();
     formData.append("file", file);
+    
+    // NEW: If user is logged in, send email
+    if (user && user.email) {
+        formData.append("user_email", user.email);
+    }
 
     try {
+      // Make sure this matches your Render URL
       const response = await axios.post("https://floorplan-api-sjoa.onrender.com/convert", formData);
       setModelUrl(response.data.url);
     } catch (error) {
@@ -133,17 +137,16 @@ export default function App() {
   return (
     <div className={`app-container ${modelUrl ? 'full-mode' : ''}`}>
       
-      {/* SIDEBAR (Hidden in Full Mode) */}
+      {/* SIDEBAR */}
       <div className="brand-strip">
         <div className="vertical-text">FLOORPLAN.AI</div>
       </div>
 
       <div className="hero-wrapper">
         
-        {/* LEFT TEXT (Hidden in Full Mode) */}
+        {/* LEFT TEXT */}
         <div className="hero-content">
           
-          {/* NAVBAR INSIDE HERO */}
           <div className="pill-nav">
             <span className="active">Home</span>
             <span>Services</span>
@@ -198,11 +201,10 @@ export default function App() {
           </div>
         </div>
 
-        {/* VISUAL AREA (Right Side -> Expands to Full Screen) */}
+        {/* VISUAL AREA */}
         <div className="hero-visual">
           <div className="abstract-bg"></div>
           
-          {/* 3D CANVAS */}
           <Canvas shadows camera={{ position: [0, 0, 8], fov: 45 }}>
             <ambientLight intensity={0.5} />
             <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
@@ -210,12 +212,10 @@ export default function App() {
 
             <Suspense fallback={null}>
               {modelUrl ? (
-                // STATE 1: USER'S MODEL
                 <Stage environment="city" intensity={1} preset="rembrandt" adjustCamera={1.2}>
                   <Model url={modelUrl} />
                 </Stage>
               ) : (
-                // STATE 2: DECORATIVE BLOB
                 <AbstractBlob />
               )}
             </Suspense>
@@ -230,7 +230,6 @@ export default function App() {
              </div>
           )}
 
-          {/* FLOATING CONTROLS (Only visible in Full Mode) */}
           {modelUrl && (
             <div className="floating-ui">
               <button className="glass-btn" onClick={resetViewer}>← Back</button>
@@ -243,7 +242,6 @@ export default function App() {
                 Buy High-Res (₹49)
               </button>
 
-              {/* Show Logged In User in Full Mode too */}
               {user && (
                  <div style={{
                     display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.6)', 
