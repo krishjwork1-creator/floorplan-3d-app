@@ -1,7 +1,8 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Stage, Float, Environment } from '@react-three/drei';
 import axios from 'axios';
+import { supabase } from './supabaseClient'; // <--- NEW IMPORT
 import './App.css';
 
 // --- 3D COMPONENT ---
@@ -28,9 +29,39 @@ function AbstractBlob() {
 }
 
 export default function App() {
+  // --- STATE ---
   const [modelUrl, setModelUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [user, setUser] = useState(null); // <--- AUTH STATE
+
+  // --- AUTH LISTENER ---
+  useEffect(() => {
+    // 1. Check active session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // 2. Listen for login/logout events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // --- AUTH HANDLERS ---
+  const handleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+    });
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    // Optional: Reset state on logout
+    resetViewer();
+  };
 
   // --- PAYMENT HANDLER ---
   const handlePayment = async () => {
@@ -38,7 +69,6 @@ export default function App() {
 
     try {
       // 1. Create Order on Backend
-      // We ask for ₹49 (4900 paise)
       const orderUrl = "https://floorplan-api-sjoa.onrender.com/create-order"; 
       const { data } = await axios.post(orderUrl, { amount: 4900 });
 
@@ -51,14 +81,12 @@ export default function App() {
         description: "High-Res 3D Model Download",
         order_id: data.id,
         handler: function (response) {
-            // 3. ON SUCCESS
             alert(`Payment Successful! ID: ${response.razorpay_payment_id}`);
-            // Trigger Download
             window.open(modelUrl, '_blank');
         },
         prefill: {
-            name: "Architect User",
-            email: "user@example.com",
+            name: user?.user_metadata?.full_name || "User",
+            email: user?.email || "user@example.com",
             contact: "9999999999"
         },
         theme: {
@@ -66,7 +94,6 @@ export default function App() {
         }
       };
 
-      // 3. Open Popup
       const rzp1 = new window.Razorpay(options);
       rzp1.open();
 
@@ -115,11 +142,31 @@ export default function App() {
         
         {/* LEFT TEXT (Hidden in Full Mode) */}
         <div className="hero-content">
+          
+          {/* NAVBAR INSIDE HERO */}
           <div className="pill-nav">
             <span className="active">Home</span>
             <span>Services</span>
-            <span>Projects</span>
             <span>Pricing</span>
+            
+            {/* AUTH BUTTONS */}
+            {user ? (
+              <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px'}}>
+                <span style={{color: '#4ade80', fontWeight: 'bold'}}>
+                  Hi, {user.user_metadata.full_name?.split(' ')[0]}
+                </span>
+                <span onClick={handleLogout} style={{cursor: 'pointer', color: '#666'}}>
+                  Logout
+                </span>
+              </div>
+            ) : (
+              <span 
+                onClick={handleLogin} 
+                style={{marginLeft: 'auto', color: '#fff', cursor: 'pointer', borderBottom: '1px solid #4ade80'}}
+              >
+                Login with Google
+              </span>
+            )}
           </div>
 
           <div className="big-title">
@@ -163,7 +210,7 @@ export default function App() {
 
             <Suspense fallback={null}>
               {modelUrl ? (
-                // STATE 1: USER'S MODEL (Brighter & Better Angle)
+                // STATE 1: USER'S MODEL
                 <Stage environment="city" intensity={1} preset="rembrandt" adjustCamera={1.2}>
                   <Model url={modelUrl} />
                 </Stage>
@@ -195,6 +242,18 @@ export default function App() {
               >
                 Buy High-Res (₹49)
               </button>
+
+              {/* Show Logged In User in Full Mode too */}
+              {user && (
+                 <div style={{
+                    display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.6)', 
+                    padding: '0 15px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)'
+                 }}>
+                    <span style={{fontSize: '0.8rem', color: '#ccc'}}>
+                      Logged in as {user.user_metadata.full_name?.split(' ')[0]}
+                    </span>
+                 </div>
+              )}
             </div>
           )}
 
