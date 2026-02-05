@@ -12,7 +12,7 @@ body, html {
   height: 100%;
   background: #000;
   color: #fff;
-  overflow: hidden; /* Prevent global scroll */
+  overflow: hidden; 
 }
 
 /* --- MAIN CONTAINER --- */
@@ -33,6 +33,7 @@ body, html {
   justify-content: center;
   z-index: 10;
   background: #000;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .vertical-text {
@@ -59,7 +60,7 @@ body, html {
   padding: 4rem;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Centers vertically on Desktop */
+  justify-content: center; 
   z-index: 5;
   background: radial-gradient(circle at top left, #1a1a1a, #000);
   transition: transform 0.5s ease, opacity 0.5s ease;
@@ -73,7 +74,7 @@ body, html {
   padding: 10px 25px;
   border-radius: 50px;
   width: fit-content;
-  margin-bottom: auto; /* Pushes content down, keeping nav at top if needed */
+  margin-bottom: auto; 
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -95,7 +96,7 @@ body, html {
   line-height: 1;
   font-weight: 800;
   margin-bottom: 20px;
-  margin-top: 40px; /* Space from nav */
+  margin-top: 40px; 
 }
 
 .highlight {
@@ -147,7 +148,7 @@ body, html {
   flex: 1;
   position: relative;
   transition: all 0.5s ease;
-  height: 100%; /* Important for Desktop */
+  height: 100%; 
 }
 
 .abstract-bg {
@@ -170,24 +171,11 @@ body, html {
   width: 100%;
 }
 
-/* --- FULL MODE (When Model is Loaded) --- */
-.app-container.full-mode .hero-content {
-  display: none; /* Hide text completely */
-}
-
-.app-container.full-mode .brand-strip {
-  display: none; /* Hide sidebar */
-}
-
-.app-container.full-mode .hero-wrapper {
-  width: 100vw;
-  height: 100vh;
-}
-
-.app-container.full-mode .hero-visual {
-  width: 100vw;
-  height: 100vh;
-}
+/* --- FULL MODE (Desktop) --- */
+.app-container.full-mode .hero-content { display: none; }
+.app-container.full-mode .brand-strip { width: 0; border: none; opacity: 0; }
+.app-container.full-mode .hero-wrapper { width: 100vw; height: 100vh; }
+.app-container.full-mode .hero-visual { width: 100vw; height: 100vh; }
 
 /* --- FLOATING CONTROLS --- */
 .floating-ui {
@@ -197,7 +185,7 @@ body, html {
   transform: translateX(-50%);
   display: flex;
   gap: 20px;
-  z-index: 100;
+  z-index: 1000; /* High Z-Index to stay on top */
   width: max-content;
 }
 
@@ -219,80 +207,85 @@ body, html {
 
 
 /* =========================================
-   📱 MOBILE FIXES (UPDATED)
+   📱 MOBILE FIXES (NUCLEAR OPTION)
    ========================================= */
 @media (max-width: 768px) {
   
-  /* 1. Fix "Big Content" & Scrolling */
+  /* 1. FORCE HIDE SIDEBAR */
+  .brand-strip {
+    display: none !important; 
+    width: 0 !important;
+  }
+
+  /* 2. Stack Layout: Column */
   .app-container {
     flex-direction: column;
     height: 100vh; 
-    overflow: hidden; /* Lock main container */
+    overflow: hidden;
   }
 
-  /* 2. Stack Layout: Visual Top (40%), Text Bottom (60%) */
   .hero-wrapper {
-    flex-direction: column-reverse; /* Put 3D on TOP, Text on BOTTOM */
+    flex-direction: column; /* Text Top, 3D Bottom */
     height: 100%;
     width: 100%;
   }
 
-  /* 3. Fix "Hidden Icons" */
+  /* 3. Text Area Adjustments */
   .hero-content {
-    justify-content: flex-start; /* Start from top, don't center */
-    padding: 2rem 1.5rem; /* Smaller padding */
-    height: 60%; /* Take bottom 60% of screen */
-    overflow-y: auto; /* Allow scrolling inside text area if needed */
+    padding: 1.5rem; 
+    height: 60%; /* Top 60% */
+    justify-content: flex-start;
+    overflow-y: auto; 
+    padding-bottom: 80px; /* Space for fixed buttons if needed */
   }
 
-  /* 4. Fix Font Sizes */
-  .big-title {
-    font-size: 2.5rem; /* Much smaller */
-    margin-top: 10px;
-    margin-bottom: 10px;
-  }
-  
-  .description {
-    font-size: 0.9rem;
-    margin-bottom: 20px;
-  }
-
+  /* 4. Fix Overlapping Nav */
   .pill-nav {
     width: 100%;
-    overflow-x: auto; /* Scroll horizontal if menu is long */
-    padding: 8px 15px;
-    margin-bottom: 10px;
+    flex-wrap: wrap; /* Allow wrapping if name is long */
+    margin-bottom: 20px;
+    gap: 10px;
   }
 
-  /* 5. Fix "Can't view 3D Model" */
+  .big-title {
+    font-size: 2.5rem; 
+    margin-top: 10px;
+  }
+
+  /* 5. 3D Viewer Area */
   .hero-visual {
-    height: 40%; /* Take top 40% of screen */
+    height: 40%; /* Bottom 40% */
     width: 100%;
-    min-height: 300px; /* Ensure it's never too small */
+    min-height: 300px;
   }
 
-  /* 6. FULL MODE ON MOBILE */
-  /* When model is loaded, take 100% of screen */
+  /* 6. FULL MODE (The Viewer Fix) */
   .app-container.full-mode .hero-visual {
-    height: 100vh !important;
-    width: 100vw !important;
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    z-index: 100;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 50;
   }
-  
-  /* Ensure controls are clickable on mobile */
+
+  /* 7. PINNED BUTTONS (The "Buy Button" Fix) */
   .floating-ui {
+    position: fixed; /* Stick to screen glass */
     bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 90%;
     flex-direction: column;
     gap: 10px;
+    z-index: 9999; /* Highest priority */
   }
 
   .glass-btn {
     width: 100%;
     text-align: center;
-    padding: 14px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.6); /* Darker background to be visible over white walls */
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
 }
