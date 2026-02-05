@@ -34,25 +34,48 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
   const [user, setUser] = useState(null);
+  const [projects, setProjects] = useState([]); // <--- NEW: Store user projects
 
-  // --- AUTH LISTENER ---
+  // --- AUTH LISTENER & PROJECT FETCHING ---
   useEffect(() => {
+    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) fetchProjects(session.user.email); // <--- Fetch on load
     });
 
+    // Listen for login/logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProjects(session.user.email); // <--- Fetch on login
+      } else {
+        setProjects([]); // Clear on logout
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  // --- FETCH PROJECTS FUNCTION ---
+  const fetchProjects = async (email) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_projects')
+        .select('*')
+        .eq('user_email', email)
+        .order('created_at', { ascending: false }); // Newest first
+      
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    }
+  };
+
   // --- AUTH HANDLERS ---
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    });
+    await supabase.auth.signInWithOAuth({ provider: 'google' });
   };
 
   const handleLogout = async () => {
@@ -65,13 +88,11 @@ export default function App() {
     if (!modelUrl) return;
 
     try {
-      // 1. Create Order
       const orderUrl = "https://floorplan-api-sjoa.onrender.com/create-order"; 
       const { data } = await axios.post(orderUrl, { amount: 4900 });
 
-      // 2. Razorpay Options
       const options = {
-        key: "rzp_live_SBaCxRDBNkWaSr", // <--- PASTE KEY ID HERE
+        key: "rzp_live_SBaCxRDBNkWaSr", // <--- KEEP YOUR KEY HERE
         amount: data.amount,
         currency: data.currency,
         name: "FloorPlan.AI",
@@ -86,9 +107,7 @@ export default function App() {
             email: user?.email || "user@example.com",
             contact: "9999999999"
         },
-        theme: {
-            color: "#4ade80"
-        }
+        theme: { color: "#4ade80" }
       };
 
       const rzp1 = new window.Razorpay(options);
@@ -110,16 +129,12 @@ export default function App() {
     
     const formData = new FormData();
     formData.append("file", file);
-    
-    // NEW: If user is logged in, send email
-    if (user && user.email) {
-        formData.append("user_email", user.email);
-    }
+    if (user && user.email) formData.append("user_email", user.email);
 
     try {
-      // Make sure this matches your Render URL
       const response = await axios.post("https://floorplan-api-sjoa.onrender.com/convert", formData);
       setModelUrl(response.data.url);
+      if (user) fetchProjects(user.email); // Refresh list after upload
     } catch (error) {
       console.error("Error:", error);
       alert("Conversion failed. Check console.");
@@ -132,6 +147,12 @@ export default function App() {
     setModelUrl(null);
     setLoading(false);
     setFileName("");
+  };
+
+  // --- LOAD SAVED PROJECT ---
+  const loadProject = (url, name) => {
+    setModelUrl(url);
+    setFileName(name);
   };
 
   return (
@@ -152,7 +173,6 @@ export default function App() {
             <span>Services</span>
             <span>Pricing</span>
             
-            {/* AUTH BUTTONS */}
             {user ? (
               <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '15px'}}>
                 <span style={{color: '#4ade80', fontWeight: 'bold'}}>
@@ -183,6 +203,7 @@ export default function App() {
             to drive your architectural success.
           </p>
 
+          {/* MAIN CTA */}
           <div className="cta-container">
             <input 
               type="file" 
@@ -194,11 +215,46 @@ export default function App() {
             />
             
             <label htmlFor="file-upload" className="cta-button">
-              {loading ? "Processing AI..." : "Transform Your Floorplan"}
+              {loading ? "Processing AI..." : "Transform New Floorplan"}
               <div className="arrow-circle">↗</div>
             </label>
             {fileName && <div style={{marginTop: '10px', color: '#666', fontSize: '0.8rem'}}>Selected: {fileName}</div>}
           </div>
+
+          {/* --- NEW: PROJECT LIBRARY (Visible only if logged in) --- */}
+          {user && projects.length > 0 && (
+            <div className="project-library" style={{marginTop: '40px'}}>
+              <h4 style={{color: '#fff', marginBottom: '15px', borderBottom: '1px solid #333', paddingBottom: '5px'}}>
+                YOUR RECENT PROJECTS
+              </h4>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto'}}>
+                {projects.map((proj) => (
+                  <div 
+                    key={proj.id} 
+                    onClick={() => loadProject(proj.model_url, proj.project_name)}
+                    style={{
+                      background: 'rgba(255,255,255,0.05)', 
+                      padding: '10px', 
+                      borderRadius: '8px', 
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      transition: '0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                    onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                  >
+                    <div style={{width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80', marginRight: '10px'}}></div>
+                    <span style={{color: '#ccc', fontSize: '0.9rem'}}>{proj.project_name}</span>
+                    <span style={{marginLeft: 'auto', color: '#666', fontSize: '0.7rem'}}>
+                      {new Date(proj.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* VISUAL AREA */}
@@ -241,17 +297,6 @@ export default function App() {
               >
                 Buy High-Res (₹49)
               </button>
-
-              {user && (
-                 <div style={{
-                    display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.6)', 
-                    padding: '0 15px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)'
-                 }}>
-                    <span style={{fontSize: '0.8rem', color: '#ccc'}}>
-                      Logged in as {user.user_metadata.full_name?.split(' ')[0]}
-                    </span>
-                 </div>
-              )}
             </div>
           )}
 
