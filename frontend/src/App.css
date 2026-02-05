@@ -1,222 +1,304 @@
-:root {
-  --bg-core: #050505;
-  --bg-card: #121212;
-  --accent-green: #4ade80; /* The Neon Green from your image */
-  --accent-dark: #14532d;
-  --text-main: #ffffff;
-  --text-muted: #9ca3af;
-  --font-display: 'Inter', sans-serif; /* Clean, modern font */
-}
-
+/* --- GLOBAL RESET --- */
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
 }
 
-body {
-  margin: 0;
-  background-color: var(--bg-core);
-  color: var(--text-main);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  overflow: hidden; /* No scrolling, app-like feel */
+body, html {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  color: #fff;
+  overflow: hidden; /* Prevents scroll when in full mode */
 }
 
 /* --- MAIN CONTAINER --- */
 .app-container {
+  display: flex;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  background: var(--bg-core);
-  position: relative;
+  background: #050505;
+  transition: all 0.5s ease;
 }
 
-/* --- LEFT SIDEBAR (The "NEXA" Strip) --- */
+/* --- LEFT SIDEBAR (BRAND) --- */
 .brand-strip {
-  width: 80px;
-  height: 100%;
-  border-right: 1px solid rgba(255,255,255,0.1);
+  width: 60px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 2rem 0;
-  z-index: 20;
-  background: var(--bg-core);
+  justify-content: center;
+  z-index: 10;
+  background: #000;
 }
 
 .vertical-text {
   writing-mode: vertical-rl;
   text-orientation: mixed;
+  color: #4ade80;
+  font-weight: 900;
+  letter-spacing: 4px;
+  font-size: 1.2rem;
   transform: rotate(180deg);
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  margin-top: auto;
-  margin-bottom: auto;
-  background: linear-gradient(to top, #fff, #666);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
-/* --- HERO SECTION (Landing Page) --- */
+/* --- HERO WRAPPER --- */
 .hero-wrapper {
   flex: 1;
   display: flex;
   position: relative;
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-/* Left Text Content */
+/* --- LEFT CONTENT AREA --- */
 .hero-content {
-  width: 45%;
+  flex: 1;
   padding: 4rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  z-index: 10;
-  background: var(--bg-core);
+  z-index: 5;
+  background: radial-gradient(circle at top left, #1a1a1a, #000);
+  transition: transform 0.5s ease, opacity 0.5s ease;
 }
 
+/* Navigation Pill */
 .pill-nav {
   display: flex;
-  gap: 2rem;
-  margin-bottom: 4rem;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 25px;
+  border-radius: 50px;
+  width: fit-content;
+  margin-bottom: 40px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pill-nav span {
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.3s;
 }
 
-.pill-nav span { cursor: pointer; transition: color 0.3s; }
-.pill-nav span:hover { color: var(--accent-green); }
-.pill-nav .active { 
-  color: var(--bg-core); 
-  background: var(--accent-green); 
-  padding: 5px 15px; 
-  border-radius: 20px; 
-  font-weight: 600;
+.pill-nav span.active, .pill-nav span:hover {
+  color: #fff;
 }
 
+/* Typography */
 .big-title {
   font-size: 5rem;
-  line-height: 0.9;
+  line-height: 1;
   font-weight: 800;
-  margin-bottom: 1.5rem;
-  text-transform: uppercase;
+  margin-bottom: 20px;
 }
 
-.highlight { color: var(--accent-green); }
+.highlight {
+  color: transparent;
+  -webkit-text-stroke: 2px #4ade80;
+}
 
 .description {
-  color: var(--text-muted);
-  font-size: 1.1rem;
+  color: #888;
   max-width: 400px;
   line-height: 1.6;
-  margin-bottom: 3rem;
+  margin-bottom: 40px;
 }
 
-/* The "Upload" Button (Styled like the CTA) */
-.cta-container {
-  position: relative;
-  display: inline-block;
-}
-
+/* CTA Button */
 .cta-button {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.2);
-  color: white;
-  padding: 1rem 2rem;
+  background: #fff;
+  color: #000;
+  padding: 15px 30px;
   border-radius: 50px;
-  font-size: 1rem;
-  cursor: pointer;
-  display: flex;
+  font-weight: bold;
+  display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  transition: all 0.3s ease;
-  overflow: hidden;
+  gap: 15px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  border: none;
 }
 
 .cta-button:hover {
-  border-color: var(--accent-green);
-  background: rgba(74, 222, 128, 0.1);
+  transform: scale(1.05);
+  background: #4ade80;
 }
 
 .arrow-circle {
-  width: 30px; height: 30px;
-  background: var(--accent-green);
+  background: #000;
+  color: #fff;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: black;
-  font-weight: bold;
 }
 
-/* --- VISUAL SIDE (The Green Blob/3D Area) --- */
+/* --- RIGHT VISUAL AREA (3D) --- */
 .hero-visual {
   flex: 1;
-  background: #1a1a1a;
   position: relative;
-  overflow: hidden;
-  /* The Curved Shape from the image */
-  border-top-left-radius: 60px;
-  border-bottom-left-radius: 60px;
-  margin: 1rem 1rem 1rem 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: all 0.5s ease;
 }
 
-/* The Background Image/Gradient */
 .abstract-bg {
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: radial-gradient(circle at 70% 30%, #1e2520 0%, #000 70%);
-  z-index: 0; /* CHANGED FROM 1 TO 0 */
-  pointer-events: none; /* Allows clicking through it */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, #222, #000);
+  z-index: -1;
 }
 
-/* Force the 3D Canvas to sit ON TOP of the background */
-.hero-visual canvas {
-  position: relative;
-  z-index: 10 !important;
+.loader-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
 }
 
-/* --- FULL SCREEN MODE (After Upload) --- */
-.app-container.full-mode .brand-strip { display: none; }
-.app-container.full-mode .hero-content { display: none; }
-.app-container.full-mode .hero-wrapper { width: 100%; height: 100%; }
-.app-container.full-mode .hero-visual { 
-  margin: 0; 
-  border-radius: 0; 
-  width: 100%; 
-  height: 100%; 
+/* --- FULL MODE (When Model is Loaded) --- */
+.app-container.full-mode .hero-content {
+  transform: translateX(-100%);
+  opacity: 0;
+  width: 0;
+  flex: 0;
+  padding: 0;
 }
 
-/* Floating Controls in Full Mode */
+.app-container.full-mode .brand-strip {
+  width: 0;
+  border: none;
+  opacity: 0;
+}
+
+.app-container.full-mode .hero-wrapper {
+  width: 100vw;
+}
+
+.app-container.full-mode .hero-visual {
+  flex: 1;
+  width: 100vw;
+}
+
+/* --- FLOATING CONTROLS --- */
 .floating-ui {
   position: absolute;
-  top: 2rem; left: 2rem;
-  z-index: 100;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 1rem;
+  gap: 20px;
+  z-index: 100;
+  width: max-content;
 }
 
 .glass-btn {
-  background: rgba(0,0,0,0.6);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: white;
-  padding: 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 12px 24px;
   border-radius: 30px;
   cursor: pointer;
-  font-weight: 500;
+  font-size: 1rem;
+  transition: background 0.3s;
 }
 
-.glass-btn:hover { background: var(--accent-green); color: black; }
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
 
-/* Loading Spinner */
-.loader-container {
-  position: absolute;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--accent-green);
+/* --- PROJECT LIBRARY STYLES --- */
+.project-library::-webkit-scrollbar {
+  width: 6px;
+}
+.project-library::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.project-library::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+/* =========================================
+   📱 MOBILE RESPONSIVE RULES (New Addition)
+   ========================================= */
+@media (max-width: 768px) {
+  /* Stack vertical instead of horizontal */
+  .app-container {
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto; /* Allow scrolling on mobile */
+  }
+
+  /* Hide the decorative sidebar strip */
+  .brand-strip {
+    display: none;
+  }
+
+  /* Stack the wrapper */
+  .hero-wrapper {
+    flex-direction: column-reverse; /* Put 3D on top, Text below? Or standard column */
+    flex-direction: column; 
+    height: auto;
+  }
+
+  /* Adjust Text Area */
+  .hero-content {
+    padding: 2rem;
+    min-height: auto;
+    width: 100%;
+  }
+
+  /* Shrink huge fonts */
+  .big-title {
+    font-size: 3rem;
+  }
+
+  .pill-nav {
+    width: 100%;
+    justify-content: space-between;
+    overflow-x: auto; /* Scroll if tags are too long */
+    margin-bottom: 20px;
+  }
+
+  /* Fix the 3D Visual Area Height on Mobile */
+  .hero-visual {
+    height: 50vh; /* Takes half the screen */
+    width: 100%;
+    min-height: 400px;
+  }
+
+  /* FULL MODE MOBILE (When viewing a model) */
+  .app-container.full-mode {
+    overflow: hidden; /* Lock scroll when viewing 3D */
+  }
+
+  .app-container.full-mode .hero-visual {
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* Reposition Floating Controls for Thumbs */
+  .floating-ui {
+    bottom: 30px;
+    flex-direction: column;
+    gap: 10px;
+    width: 90%;
+  }
+
+  .glass-btn {
+    width: 100%;
+    text-align: center;
+    padding: 15px; /* Bigger touch target */
+  }
 }
