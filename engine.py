@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 import trimesh
-from scipy.spatial import cKDTree
-from shapely.geometry import Polygon # <--- NEW IMPORT
+from shapely.geometry import Polygon
+import math
 
 def process_image_to_3d(image_path, output_path):
     # 1. Load and Preprocess
@@ -30,47 +30,52 @@ def process_image_to_3d(image_path, output_path):
         if len(approx) >= 3:
             points = approx.squeeze()
             
-            # FIX: Create a Shapely Polygon directly
-            # This forces the shape to be closed and valid for extrusion
-            poly_obj = Polygon(points)
-            
-            # Extrude the valid polygon
-            wall_mesh = trimesh.creation.extrude_polygon(poly_obj, height=wall_height)
-            wall_mesh.visual.face_colors = [240, 240, 240, 255]
-            scene.add_geometry(wall_mesh)
+            try:
+                # Create Polygon
+                poly_obj = Polygon(points)
+                
+                if poly_obj.is_valid and poly_obj.area > 100: # Filter noise
+                    # Extrude
+                    wall_mesh = trimesh.creation.extrude_polygon(poly_obj, height=wall_height)
+                    wall_mesh.visual.face_colors = [240, 240, 240, 255]
+                    scene.add_geometry(wall_mesh)
 
-            # Collect endpoints for door detection
-            for p in points:
-                wall_endpoints.append(p)
+                    # Collect endpoints
+                    for p in points:
+                        wall_endpoints.append(p)
+            except Exception as e:
+                print(f"Skipping invalid shape: {e}")
 
-    # --- B. DETECT DOORS (THE BRIDGE) ---
+    # --- B. DETECT DOORS (LIGHTWEIGHT MATH) ---
+    # No scipy, just simple math loop
     if len(wall_endpoints) > 2:
         points_array = np.array(wall_endpoints)
-        tree = cKDTree(points_array)
         
-        # Check pairs within 80px distance
-        pairs = tree.query_pairs(r=80) 
-        
-        for (i, j) in pairs:
-            p1 = points_array[i]
-            p2 = points_array[j]
-            dist = np.linalg.norm(p1 - p2)
+        # Compare every point with every other point (Simple & Fast for <1000 points)
+        for i in range(len(points_array)):
+            for j in range(i + 1, len(points_array)):
+                p1 = points_array[i]
+                p2 = points_array[j]
+                
+                # Calculate Distance (Pythagoras)
+                dist = math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
-            if dist > 25: 
-                vec = p2 - p1
-                angle = np.arctan2(vec[1], vec[0])
-                
-                header = trimesh.creation.box(extents=[dist, 10, header_height])
-                
-                midpoint = (p1 + p2) / 2
-                z_pos = door_height + (header_height / 2.0)
-                
-                transform = trimesh.transformations.translation_matrix([midpoint[0], midpoint[1], z_pos])
-                rotate = trimesh.transformations.rotation_matrix(angle, [0, 0, 1])
-                
-                header.apply_transform(transform @ rotate)
-                header.visual.face_colors = [200, 200, 200, 255] 
-                scene.add_geometry(header)
+                # Door Check: Gaps between 25px and 90px
+                if 25 < dist < 90:
+                    vec = p2 - p1
+                    angle = np.arctan2(vec[1], vec[0])
+                    
+                    header = trimesh.creation.box(extents=[dist, 10, header_height])
+                    
+                    midpoint = (p1 + p2) / 2
+                    z_pos = door_height + (header_height / 2.0)
+                    
+                    transform = trimesh.transformations.translation_matrix([midpoint[0], midpoint[1], z_pos])
+                    rotate = trimesh.transformations.rotation_matrix(angle, [0, 0, 1])
+                    
+                    header.apply_transform(transform @ rotate)
+                    header.visual.face_colors = [200, 200, 200, 255] 
+                    scene.add_geometry(header)
 
     # 3. Export
     scene.export(output_path)
