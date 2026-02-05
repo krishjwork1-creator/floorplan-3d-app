@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Stage, Float, Environment } from '@react-three/drei';
 import axios from 'axios';
 import { supabase } from './supabaseClient';
+import toast, { Toaster } from 'react-hot-toast'; // <--- NEW IMPORT
 import './App.css';
 
 // --- 3D COMPONENT ---
@@ -29,42 +30,38 @@ function AbstractBlob() {
 }
 
 export default function App() {
-  // --- STATE ---
   const [modelUrl, setModelUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
   const [user, setUser] = useState(null);
-  const [projects, setProjects] = useState([]); // <--- NEW: Store user projects
+  const [projects, setProjects] = useState([]);
 
-  // --- AUTH LISTENER & PROJECT FETCHING ---
+  // --- AUTH & DATA LOADING ---
   useEffect(() => {
-    // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchProjects(session.user.email); // <--- Fetch on load
+      if (session?.user) fetchProjects(session.user.email);
     });
 
-    // Listen for login/logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProjects(session.user.email); // <--- Fetch on login
+        fetchProjects(session.user.email);
       } else {
-        setProjects([]); // Clear on logout
+        setProjects([]);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // --- FETCH PROJECTS FUNCTION ---
   const fetchProjects = async (email) => {
     try {
       const { data, error } = await supabase
         .from('user_projects')
         .select('*')
         .eq('user_email', email)
-        .order('created_at', { ascending: false }); // Newest first
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       setProjects(data || []);
@@ -73,7 +70,7 @@ export default function App() {
     }
   };
 
-  // --- AUTH HANDLERS ---
+  // --- ACTIONS ---
   const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({ provider: 'google' });
   };
@@ -81,25 +78,48 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     resetViewer();
+    toast.success("Logged out successfully");
   };
 
-  // --- PAYMENT HANDLER ---
+  const handleDeleteProject = async (e, id) => {
+    e.stopPropagation(); // Stop the click from opening the project
+    
+    // Optimistic UI Update (Remove it from screen immediately)
+    setProjects(projects.filter(p => p.id !== id));
+    
+    try {
+      const { error } = await supabase
+        .from('user_projects')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success("Project deleted");
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Could not delete project");
+      // Optional: Fetch projects again to revert if failed
+    }
+  };
+
   const handlePayment = async () => {
     if (!modelUrl) return;
+    const toastId = toast.loading("Initializing payment...");
 
     try {
       const orderUrl = "https://floorplan-api-sjoa.onrender.com/create-order"; 
       const { data } = await axios.post(orderUrl, { amount: 4900 });
+      toast.dismiss(toastId);
 
       const options = {
-        key: "rzp_live_SBaCxRDBNkWaSr", // <--- KEEP YOUR KEY HERE
+        key: "rzp_live_SBaCxRDBNkWaSr", 
         amount: data.amount,
         currency: data.currency,
         name: "FloorPlan.AI",
         description: "High-Res 3D Model Download",
         order_id: data.id,
         handler: function (response) {
-            alert(`Payment Successful! ID: ${response.razorpay_payment_id}`);
+            toast.success(`Payment Successful! ID: ${response.razorpay_payment_id}`);
             window.open(modelUrl, '_blank');
         },
         prefill: {
@@ -115,17 +135,18 @@ export default function App() {
 
     } catch (error) {
         console.error("Payment Error:", error);
-        alert("Payment initialization failed. Check console.");
+        toast.dismiss(toastId);
+        toast.error("Payment failed to start");
     }
   };
 
-  // --- UPLOAD HANDLER ---
   const handleUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     setLoading(true);
     setFileName(file.name);
+    const toastId = toast.loading("Processing Floorplan... (This takes 60s)");
     
     const formData = new FormData();
     formData.append("file", file);
@@ -133,11 +154,16 @@ export default function App() {
 
     try {
       const response = await axios.post("https://floorplan-api-sjoa.onrender.com/convert", formData);
+      
+      toast.dismiss(toastId);
+      toast.success("Conversion Complete!");
+      
       setModelUrl(response.data.url);
-      if (user) fetchProjects(user.email); // Refresh list after upload
+      if (user) fetchProjects(user.email); 
     } catch (error) {
       console.error("Error:", error);
-      alert("Conversion failed. Check console.");
+      toast.dismiss(toastId);
+      toast.error("Conversion failed. Check server logs.");
     } finally {
       setLoading(false);
     }
@@ -149,23 +175,21 @@ export default function App() {
     setFileName("");
   };
 
-  // --- LOAD SAVED PROJECT ---
   const loadProject = (url, name) => {
     setModelUrl(url);
     setFileName(name);
+    toast.success(`Loaded ${name}`);
   };
 
   return (
     <div className={`app-container ${modelUrl ? 'full-mode' : ''}`}>
+      <Toaster position="top-center" reverseOrder={false} /> {/* <--- NOTIFICATION HUB */}
       
-      {/* SIDEBAR */}
       <div className="brand-strip">
         <div className="vertical-text">FLOORPLAN.AI</div>
       </div>
 
       <div className="hero-wrapper">
-        
-        {/* LEFT TEXT */}
         <div className="hero-content">
           
           <div className="pill-nav">
@@ -178,7 +202,7 @@ export default function App() {
                 <span style={{color: '#4ade80', fontWeight: 'bold'}}>
                   Hi, {user.user_metadata.full_name?.split(' ')[0]}
                 </span>
-                <span onClick={handleLogout} style={{cursor: 'pointer', color: '#666'}}>
+                <span onClick={handleLogout} style={{cursor: 'pointer', color: '#666', fontSize: '0.9rem'}}>
                   Logout
                 </span>
               </div>
@@ -203,7 +227,6 @@ export default function App() {
             to drive your architectural success.
           </p>
 
-          {/* MAIN CTA */}
           <div className="cta-container">
             <input 
               type="file" 
@@ -215,40 +238,72 @@ export default function App() {
             />
             
             <label htmlFor="file-upload" className="cta-button">
-              {loading ? "Processing AI..." : "Transform New Floorplan"}
+              {loading ? "AI Processing..." : "Transform New Floorplan"}
               <div className="arrow-circle">↗</div>
             </label>
             {fileName && <div style={{marginTop: '10px', color: '#666', fontSize: '0.8rem'}}>Selected: {fileName}</div>}
           </div>
 
-          {/* --- NEW: PROJECT LIBRARY (Visible only if logged in) --- */}
+          {/* PROJECT LIBRARY */}
           {user && projects.length > 0 && (
             <div className="project-library" style={{marginTop: '40px'}}>
-              <h4 style={{color: '#fff', marginBottom: '15px', borderBottom: '1px solid #333', paddingBottom: '5px'}}>
-                YOUR RECENT PROJECTS
+              <h4 style={{color: '#fff', marginBottom: '15px', borderBottom: '1px solid #333', paddingBottom: '5px', fontSize: '0.9rem', letterSpacing: '1px'}}>
+                YOUR PROJECTS
               </h4>
-              <div style={{display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto'}}>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto', paddingRight: '5px'}}>
                 {projects.map((proj) => (
                   <div 
                     key={proj.id} 
                     onClick={() => loadProject(proj.model_url, proj.project_name)}
+                    className="project-card" // Added class for hover effects
                     style={{
-                      background: 'rgba(255,255,255,0.05)', 
-                      padding: '10px', 
+                      background: 'rgba(255,255,255,0.03)', 
+                      padding: '12px', 
                       borderRadius: '8px', 
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      transition: '0.2s'
+                      border: '1px solid transparent',
+                      transition: 'all 0.2s ease'
                     }}
-                    onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                    onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(74, 222, 128, 0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                      e.currentTarget.style.borderColor = 'transparent';
+                    }}
                   >
-                    <div style={{width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80', marginRight: '10px'}}></div>
-                    <span style={{color: '#ccc', fontSize: '0.9rem'}}>{proj.project_name}</span>
-                    <span style={{marginLeft: 'auto', color: '#666', fontSize: '0.7rem'}}>
-                      {new Date(proj.created_at).toLocaleDateString()}
-                    </span>
+                    <div style={{width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80', marginRight: '12px'}}></div>
+                    
+                    <div style={{display: 'flex', flexDirection: 'column'}}>
+                      <span style={{color: '#e0e0e0', fontSize: '0.85rem', fontWeight: '500'}}>
+                        {proj.project_name.length > 20 ? proj.project_name.substring(0, 18) + '...' : proj.project_name}
+                      </span>
+                      <span style={{color: '#666', fontSize: '0.7rem'}}>
+                        {new Date(proj.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {/* DELETE BUTTON */}
+                    <button 
+                      onClick={(e) => handleDeleteProject(e, proj.id)}
+                      style={{
+                        marginLeft: 'auto', 
+                        background: 'transparent', 
+                        border: 'none', 
+                        color: '#666', 
+                        cursor: 'pointer',
+                        padding: '5px',
+                        borderRadius: '4px'
+                      }}
+                      onMouseEnter={(e) => {e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}}
+                      onMouseLeave={(e) => {e.currentTarget.style.color = '#666'; e.currentTarget.style.background = 'transparent'}}
+                      title="Delete Project"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 ))}
               </div>
@@ -257,7 +312,6 @@ export default function App() {
 
         </div>
 
-        {/* VISUAL AREA */}
         <div className="hero-visual">
           <div className="abstract-bg"></div>
           
@@ -279,13 +333,6 @@ export default function App() {
             <OrbitControls makeDefault autoRotate={!modelUrl} />
           </Canvas>
 
-          {loading && (
-             <div className="loader-container">
-               <h3>Building your world...</h3>
-               <p style={{fontSize: '0.8rem', color: '#666'}}>This may take up to 60s for the first run</p>
-             </div>
-          )}
-
           {modelUrl && (
             <div className="floating-ui">
               <button className="glass-btn" onClick={resetViewer}>← Back</button>
@@ -299,7 +346,6 @@ export default function App() {
               </button>
             </div>
           )}
-
         </div>
       </div>
     </div>
