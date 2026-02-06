@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import trimesh
+import mapbox_earcut # <--- NEW: Force Python to load this!
 from shapely.geometry import Polygon
 import math
 
@@ -34,6 +35,7 @@ def process_image_to_3d(image_path, output_path):
                 poly_obj = Polygon(points)
                 
                 if poly_obj.is_valid and poly_obj.area > 100:
+                    # Trimesh will now find mapbox_earcut because we imported it above
                     wall_mesh = trimesh.creation.extrude_polygon(poly_obj, height=wall_height)
                     wall_mesh.visual.face_colors = [240, 240, 240, 255]
                     scene.add_geometry(wall_mesh)
@@ -47,7 +49,6 @@ def process_image_to_3d(image_path, output_path):
     if len(wall_endpoints) > 2:
         points_array = np.array(wall_endpoints)
         
-        # Simple loop to find close points (No heavy libraries)
         for i in range(len(points_array)):
             for j in range(i + 1, len(points_array)):
                 p1 = points_array[i]
