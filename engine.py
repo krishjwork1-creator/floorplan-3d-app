@@ -144,5 +144,5 @@ def process_image_to_3d(image_path, output_path):
     if not output_path.endswith('.obj'):
         final_path = output_path + ".obj"
     
-    writer.save(final_path) # Save as whatever filename was requested
-    print(f"✅ 3D Model generated: {final_path}")
+    writer.save(output_path) # Save as whatever filename was requested
+    print(f"✅ 3D Model generated: {output_path}")
