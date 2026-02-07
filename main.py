@@ -7,10 +7,14 @@ from supabase import create_client, Client
 from engine import process_image_to_3d
 import razorpay
 from pydantic import BaseModel
+import scipy
 
 # --- CONFIGURATION ---
 SUPABASE_URL = "https://lebfznhghxhddkmealtm.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYmZ6bmhnaHhoZGRrbWVhbHRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDAyMDI0OSwiZXhwIjoyMDg1NTk2MjQ5fQ.iwdSuFtiHql8zC3aGGmYwpnwEqd6ex31hsYrhtEsaFk" # Must be the Service Role (Admin) Key
+
+# ⚠️ SECURITY: Use your SERVICE_ROLE_KEY here (starts with eyJhbGciOiJIUzI1NiIs...)
+# This key is required to bypass RLS and write to the database from the backend.
+SUPABASE_KEY = "YOUR_SERVICE_ROLE_KEY_HERE" 
 
 # --- RAZORPAY CONFIG ---
 RAZORPAY_KEY_ID = "rzp_live_SBaCxRDBNkWaSr"
@@ -30,11 +34,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ensure temp directory exists
 os.makedirs("temp", exist_ok=True)
 
 @app.get("/")
 def home():
-    return {"message": "Floorplan 3D API (Cloud Powered)"}
+    return {"message": "Floorplan 3D API (Cloud Powered) is Running"}
 
 @app.post("/convert")
 async def convert_floorplan(
@@ -45,54 +50,65 @@ async def convert_floorplan(
     print(f"🚀 DEBUG: Request Received!")
     print(f"📧 DEBUG: User Email: {user_email}")
     print(f"Fn DEBUG: Filename: {file.filename}")
-    # ------------------
+
+    clean_filename = file.filename.replace(" ", "_")
+    input_path = f"temp/{clean_filename}"
+    glb_filename = f"model_{clean_filename.split('.')[0]}.glb"
+    output_path = f"temp/{glb_filename}"
 
     try:
-        # 1. Save and Process File
-        clean_filename = file.filename.replace(" ", "_")
-        input_path = f"temp/{clean_filename}"
-        glb_filename = f"model_{clean_filename.split('.')[0]}.glb"
-        output_path = f"temp/{glb_filename}"
-
+        # 1. Save File Locally
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        # 2. Process Image (Engine)
         process_image_to_3d(input_path, output_path)
 
-        # 2. Upload GLB to Storage
+        # 3. Upload GLB to Supabase Storage
         with open(output_path, "rb") as f:
+            print("☁️ DEBUG: Uploading to Supabase Storage...")
             supabase.storage.from_("floorplans").upload(
                 path=glb_filename,
                 file=f,
                 file_options={"content-type": "model/gltf-binary", "upsert": "true"}
             )
 
-        # 3. Get Public URL
-        project_url = SUPABASE_URL
-        public_url = f"{project_url}/storage/v1/object/public/floorplans/{glb_filename}"
+        # 4. Construct Public URL
+        # Note: Ensure your bucket "floorplans" is set to Public in Supabase dashboard
+        public_url = f"{SUPABASE_URL}/storage/v1/object/public/floorplans/{glb_filename}"
+        print(f"🔗 DEBUG: Generated URL: {public_url}")
 
-        # 4. SAVE TO DATABASE
-        if user_email:
+        # 5. SAVE TO DATABASE (Critical Step)
+        if user_email and user_email != "null":
             print(f"💾 DEBUG: Saving to DB for {user_email}...")
-            response = supabase.table("user_projects").insert({
+            
+            data = {
                 "user_email": user_email,
                 "project_name": clean_filename,
                 "model_url": public_url
-            }).execute()
-            print("✅ DEBUG: DB Save Success!")
+            }
+            
+            # Using service_role key allows us to bypass RLS here
+            response = supabase.table("user_projects").insert(data).execute()
+            print("✅ DEBUG: DB Save Success!", response)
         else:
-            print("⚠️ DEBUG: No email provided, skipping DB save.")
-
-        # 5. Cleanup
-        os.remove(input_path)
-        os.remove(output_path)
+            print("⚠️ DEBUG: No valid email provided, skipping DB save.")
 
         return JSONResponse(content={"url": public_url})
 
     except Exception as e:
         print(f"❌ ERROR: {e}")
+        # Return the error details to frontend for easier debugging
         raise HTTPException(status_code=500, detail=str(e))
-    
+        
+    finally:
+        # 6. Cleanup (Runs even if error occurs)
+        if os.path.exists(input_path):
+            os.remove(input_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)
+        print("🧹 DEBUG: Temp files cleaned up.")
+
 # --- PAYMENT ENDPOINT ---
 class OrderRequest(BaseModel):
     amount: int
