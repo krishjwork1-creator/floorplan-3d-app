@@ -1,14 +1,165 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>FloorPlan AI - Mobile Optimized</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; color: white; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        /* Mobile Overlay Styling */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; /* Let touches pass through to 3D */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        .interactive { pointer-events: auto; } /* Buttons usually need this */
+        
+        /* Loading Spinner */
+        #loader {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px; border-radius: 10px;
+            display: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <div class="interactive flex justify-between items-center bg-black/50 p-4 rounded-xl backdrop-blur-md">
+            <h1 class="text-xl font-bold text-green-400">FloorPlan.AI</h1>
+        </div>
+
+        <div class="interactive w-full flex flex-col gap-4 items-center mb-8">
+            <input type="file" id="fileInput" accept="image/*" class="hidden">
+            
+            <button onclick="document.getElementById('fileInput').click()" 
+                class="bg-white text-black px-8 py-4 rounded-full font-bold text-lg shadow-lg active:scale-95 transition w-full max-w-md">
+                Upload Floor Plan 📸
+            </button>
+            
+            <p class="text-xs text-gray-400">Supported formats: JPG, PNG</p>
+        </div>
+    </div>
+
+    <div id="loader">
+        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-white mx-auto mb-2"></div>
+        <p>Generating 3D Model...</p>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // 1. Setup Scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111); // Dark background
+
+        // 2. Camera (Mobile FOV)
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, -100, 150); // High angle view
+
+        // 3. Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // 4. Lighting (Studio Setup)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(50, 50, 100);
+        scene.add(dirLight);
+
+        // 5. Controls (Touch Enabled)
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // 6. Handle Upload
+        const fileInput = document.getElementById('fileInput');
+        const loaderUI = document.getElementById('loader');
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Show Loader
+            loaderUI.style.display = 'block';
+
+            // Upload
+            const formData = new FormData();
+            formData.append('convert', file); // 'convert' matches FastAPI param name
+
+            try {
+                // REPLACE WITH YOUR RENDER URL
+                const response = await fetch('https://floorplan-api-sjoa.onrender.com/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error("Conversion failed");
+
+                // Load 3D Model
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                
+                const loader = new GLTFLoader();
+                loader.load(url, (gltf) => {
+                    // Clear previous model
+                    scene.children = scene.children.filter(obj => obj.type !== 'Group');
+                    
+                    scene.add(gltf.scene);
+                    
+                    // Auto-Center Model
+                    const box = new THREE.Box3().setFromObject(gltf.scene);
+                    const center = box.getCenter(new THREE.Vector3());
+                    gltf.scene.position.sub(center);
+                    
+                    loaderUI.style.display = 'none';
+                });
+
+            } catch (err) {
+                alert("Error: " + err.message);
+                loaderUI.style.display = 'none';
+            }
+        });
+
+        // 7. Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 8. Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
 </html>

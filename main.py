@@ -8,7 +8,7 @@ from engine import process_image_to_3d
 
 app = FastAPI()
 
-# Enable CORS for your frontend
+# Enable CORS for Mobile/Web Frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,7 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create temp directory for processing
 os.makedirs("temp", exist_ok=True)
 
 @app.get("/")
@@ -26,21 +25,18 @@ def home():
 
 @app.post("/convert")
 async def convert_plan(file: UploadFile = File(...)):
-    # 1. Generate unique filenames to prevent conflicts
     unique_id = str(uuid.uuid4())[:8]
     input_filename = f"temp/{unique_id}_input.jpg"
-    output_filename = f"temp/{unique_id}_model.glb" # We explicitly want GLB
+    output_filename = f"temp/{unique_id}_model.glb"
     
     try:
-        # 2. Save the uploaded file
+        # Save File
         with open(input_filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # 3. Run the 3D Engine
-        # This function must create the .glb file at output_filename
+        # Process (Walls Only)
         process_image_to_3d(input_filename, output_filename)
         
-        # 4. Return the file
         if not os.path.exists(output_filename):
             raise HTTPException(status_code=500, detail="Failed to generate 3D model")
             
@@ -55,10 +51,8 @@ async def convert_plan(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
         
     finally:
-        # Cleanup: Delete files after sending (optional, keeps server clean)
-        # We wrap in try/except so cleanup errors don't fail the request
+        # Cleanup input
         try:
             if os.path.exists(input_filename): os.remove(input_filename)
-            # We don't delete output immediately so FileResponse can read it
         except:
             pass
