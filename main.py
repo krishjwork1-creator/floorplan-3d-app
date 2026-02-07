@@ -14,7 +14,8 @@ SUPABASE_URL = "https://lebfznhghxhddkmealtm.supabase.co"
 
 # ⚠️ SECURITY: Use your SERVICE_ROLE_KEY here (starts with eyJhbGciOiJIUzI1NiIs...)
 # This key is required to bypass RLS and write to the database from the backend.
-SUPABASE_KEY = "YOUR_SERVICE_ROLE_KEY_HERE" 
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlYmZ6bmhnaHhoZGRrbWVhbHRtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDAyMDI0OSwiZXhwIjoyMDg1NTk2MjQ5fQ.iwdSuFtiHql8zC3aGGmYwpnwEqd6ex31hsYrhtEsaFk
+" 
 
 # --- RAZORPAY CONFIG ---
 RAZORPAY_KEY_ID = "rzp_live_SBaCxRDBNkWaSr"
