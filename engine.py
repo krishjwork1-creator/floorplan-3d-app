@@ -1,30 +1,3 @@
-# ==========================================
-# 🛡️ SYSTEM OVERRIDE: SCIPY MOCK 🛡️
-# This block runs before trimesh loads.
-# It creates a fake package structure so trimesh 
-# (and the server) never crash looking for scipy.
-# ==========================================
-import sys
-import types
-from unittest.mock import MagicMock
-
-# 1. Create the main fake module
-fake_scipy = types.ModuleType("scipy")
-sys.modules["scipy"] = fake_scipy
-
-# 2. Create fake submodules (Fixes "scipy is not a package" error)
-fake_sparse = types.ModuleType("scipy.sparse")
-sys.modules["scipy.sparse"] = fake_sparse
-fake_scipy.sparse = fake_sparse
-
-fake_spatial = types.ModuleType("scipy.spatial")
-sys.modules["scipy.spatial"] = fake_spatial
-fake_scipy.spatial = fake_spatial
-
-# 3. Add MagicMocks for specific functions
-fake_spatial.cKDTree = MagicMock()
-# ==========================================
-
 import cv2
 import numpy as np
 import trimesh
@@ -32,32 +5,36 @@ import math
 
 def create_wall_segment(p1, p2, height, thickness=12):
     """
-    Creates a simple 3D rectangular block (wall) between two points.
+    Creates a 3D wall segment between two points using a simple Box.
+    This looks exactly like an extruded wall but works without scipy.
     """
-    # 1. Calculate length
-    dist = math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
-    if dist < 2: return None # Skip tiny noise
+    # 1. Calculate distance between points
+    dx = p2[0] - p1[0]
+    dy = p2[1] - p1[1]
+    dist = math.sqrt(dx*dx + dy*dy)
+    
+    if dist < 2: return None # Skip noise
         
-    # 2. Create Box
-    # This is safe and doesn't require advanced math libraries
-    try:
-        box = trimesh.creation.box(extents=[dist, thickness, height])
-    except Exception:
-        return None
+    # 2. Create the Wall (Box)
+    # extents = [length, thickness, height]
+    box = trimesh.creation.box(extents=[dist, thickness, height])
     
-    # 3. Position and Rotate
+    # 3. Position and Rotate the Wall
+    # Move to the midpoint between p1 and p2
     midpoint = (p1 + p2) / 2
-    vec = p2 - p1
-    angle = np.arctan2(vec[1], vec[0])
     
-    # Move to position
+    # Calculate angle to rotate the box
+    angle = np.arctan2(dy, dx)
+    
+    # Create transformation matrix (Translate + Rotate)
+    # Z-position is height/2 because boxes are created at the origin
     transform = trimesh.transformations.translation_matrix([midpoint[0], midpoint[1], height/2])
-    # Rotate to align with the wall line
     rotate = trimesh.transformations.rotation_matrix(angle, [0, 0, 1])
     
+    # Apply transform
     box.apply_transform(transform @ rotate)
     
-    # Color: Off-white for walls
+    # Set Color (Light Gray/Off-White)
     box.visual.face_colors = [240, 240, 240, 255]
     return box
 
@@ -66,43 +43,46 @@ def process_image_to_3d(image_path, output_path):
     
     # 1. Load Image
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    
+    # Invert: We want Walls to be White (255)
     _, binary = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
 
-    # Clean Noise
+    # Clean up small noise dots
     kernel = np.ones((3,3), np.uint8)
     binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=1)
     
-    # Skeletonize (Thin lines for better tracing)
+    # Skeletonize: Thin lines to 1 pixel wide for clean tracing
     dist_transform = cv2.distanceTransform(binary, cv2.DIST_L2, 5)
     _, skeleton = cv2.threshold(dist_transform, 5, 255, cv2.THRESH_BINARY)
     skeleton = skeleton.astype(np.uint8)
 
-    # Find Contours
+    # Find Contours (The lines to draw)
     contours, _ = cv2.findContours(skeleton, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     
     scene = trimesh.Scene()
     
-    # --- ADD FLOOR (Critical for Visuals) ---
-    # We add a dark floor so the model isn't floating in void
+    # --- ADD FLOOR ---
+    # A simple floor ensures the viewer has a reference point
     h, w = img.shape
     floor = trimesh.creation.box(extents=[w, h, 1])
     floor.apply_translation([w/2, h/2, -0.5])
-    floor.visual.face_colors = [50, 50, 50, 255]
+    floor.visual.face_colors = [50, 50, 50, 255] # Dark Gray Floor
     scene.add_geometry(floor)
 
-    wall_height = 50.0 # Standard wall height
+    # Wall Settings
+    wall_height = 50.0 
     
     # --- BUILD WALLS ---
     for cnt in contours:
-        # Simplify the curve
+        # Simplify the contour to remove jagged edges
         epsilon = 0.005 * cv2.arcLength(cnt, False)
         approx = cv2.approxPolyDP(cnt, epsilon, False)
         points = approx.squeeze()
         
-        # Need at least 2 points to make a wall
+        # We need at least 2 points to draw a line
         if len(points.shape) < 2: continue
 
-        # Connect every point to the next point
+        # Iterate through points and build segments
         for i in range(len(points) - 1):
             p1 = points[i]
             p2 = points[i+1]
@@ -112,7 +92,7 @@ def process_image_to_3d(image_path, output_path):
                 scene.add_geometry(wall)
 
     # --- EXPORT ---
-    # We force .glb format because that's what your frontend viewer expects.
-    # This prevents the "Black Screen" issue.
+    # Export as GLB (Binary) to ensure it works in your web viewer
+    # (Fixes the blank screen issue caused by OBJ text files)
     scene.export(output_path, file_type='glb')
     print(f"✅ 3D Model generated: {output_path}")
